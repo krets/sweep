@@ -1,0 +1,114 @@
+[gd_scene load_steps=4 format=3 uid="uid://bd2h5hfjso30y"]
+
+[ext_resource type="Script" uid="uid://dfxr7f6mk2b7c" path="res://game.gd" id="1_80nbo"]
+[ext_resource type="AudioStream" uid="uid://krj7it85ivr2" path="res://sounds/mixkit-light-button-2580.wav" id="2_e2o6t"]
+[ext_resource type="AudioStream" uid="uid://dqsrwycb3j2j3" path="res://sounds/mixkit-safe-lock-2853.wav" id="2_feb5d"]
+
+[node name="Game" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_80nbo")
+grid_width = 26
+grid_height = 13
+mine_count = 45
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 10.0
+offset_right = 108.0
+offset_bottom = 50.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="StatusLabel" type="Label" parent="VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="RestartButton" type="Button" parent="VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+text = "New Game"
+
+[node name="HBoxContainerPoints" type="HBoxContainer" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="PointsTitleLabel" type="Label" parent="VBoxContainer/HBoxContainer/HBoxContainerPoints"]
+layout_mode = 2
+text = "Points:"
+
+[node name="PointsLabel" type="Label" parent="VBoxContainer/HBoxContainer/HBoxContainerPoints"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "100"
+
+[node name="HBoxContainerMines" type="HBoxContainer" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="MinesTitleLabel" type="Label" parent="VBoxContainer/HBoxContainer/HBoxContainerMines"]
+layout_mode = 2
+text = "Mines:"
+
+[node name="MineCounter" type="Label" parent="VBoxContainer/HBoxContainer/HBoxContainerMines"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="GridContainer" type="GridContainer" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="OverlayPanel" type="Panel" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="OverlayPanel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -44.0
+offset_top = -29.0
+offset_right = 44.0
+offset_bottom = 29.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="OverlayLabel" type="Label" parent="OverlayPanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 1
+text = "Game Over"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="OverlayRestartButton" type="Button" parent="OverlayPanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Play Again"
+
+[node name="Sounds" type="Node" parent="."]
+
+[node name="LockedSound" type="AudioStreamPlayer" parent="Sounds"]
+stream = ExtResource("2_feb5d")
+
+[node name="ErrorSound" type="AudioStreamPlayer" parent="Sounds"]
+stream = ExtResource("2_e2o6t")
