@@ -4,8 +4,9 @@ extends Control
 @export var grid_height: int = 10
 @export var mine_count: int = 10
 @export var cell_size: int = 40
-@export var misclick_max: int = 3
+@export var misclick_max: int = 4
 @export var misclick_clear: float = 2.0
+@export var points_per_tile: int = 1
 
 var cell_scene = preload("res://Cell.tscn")
 var grid: Array = []
@@ -16,6 +17,10 @@ var flags_placed: int = 0
 var misclick_counter: int = 0
 var misclick_locked: bool = false
 var misclick_timer: Timer = null
+var countdown_timer: Timer = null
+
+var points: int = 0
+var points_bonus: int = 0
 
 
 @onready var grid_container: GridContainer = %GridContainer
@@ -36,11 +41,21 @@ func _ready():
 	misclick_timer.one_shot = false
 	misclick_timer.autostart = false
 	misclick_timer.timeout.connect(_on_misclick_timer_tick)
+	
+	countdown_timer = Timer.new()
+	countdown_timer.wait_time = 1
+	countdown_timer.one_shot = false
+	countdown_timer.autostart = true
+	countdown_timer.timeout.connect(_on_countdowntick)
 	add_child(misclick_timer)
+	add_child(countdown_timer)
 	new_game()
 
 func new_game():
 	misclick_counter = 0
+	points = 0
+	points_bonus = 0
+	points_label.text = "0"
 	misclick_locked = false
 	misclick_timer.stop()
 	# Clear existing grid
@@ -139,6 +154,7 @@ func reveal_cell(x: int, y: int):
 	
 	cell.reveal()
 	cells_revealed += 1
+	points_bonus += points_per_tile
 	
 	# If cell has no adjacent mines, reveal neighbors
 	if cell.adjacent_mines == 0 and not cell.is_mine:
@@ -276,3 +292,10 @@ func _on_misclick_timer_tick():
 	if misclick_counter <= 0:
 		misclick_locked = false
 		misclick_timer.stop()
+
+func _on_countdowntick():
+	if game_over:
+		return
+	points_bonus = max(0, points_bonus - 1)
+	points_label.text = str(cells_revealed * points_per_tile + points_bonus)
+	pass

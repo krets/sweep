@@ -38,26 +38,25 @@ visible = false
 layout_mode = 2
 text = "New Game"
 
-[node name="HBoxContainerPoints" type="HBoxContainer" parent="VBoxContainer/HBoxContainer"]
+[node name="GridContainer" type="GridContainer" parent="VBoxContainer/HBoxContainer"]
 layout_mode = 2
+columns = 2
 
-[node name="PointsTitleLabel" type="Label" parent="VBoxContainer/HBoxContainer/HBoxContainerPoints"]
+[node name="PointsTitleLabel" type="Label" parent="VBoxContainer/HBoxContainer/GridContainer"]
 layout_mode = 2
 text = "Points:"
+horizontal_alignment = 2
 
-[node name="PointsLabel" type="Label" parent="VBoxContainer/HBoxContainer/HBoxContainerPoints"]
+[node name="PointsLabel" type="Label" parent="VBoxContainer/HBoxContainer/GridContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "100"
 
-[node name="HBoxContainerMines" type="HBoxContainer" parent="VBoxContainer/HBoxContainer"]
-layout_mode = 2
-
-[node name="MinesTitleLabel" type="Label" parent="VBoxContainer/HBoxContainer/HBoxContainerMines"]
+[node name="MinesTitleLabel" type="Label" parent="VBoxContainer/HBoxContainer/GridContainer"]
 layout_mode = 2
 text = "Mines:"
+horizontal_alignment = 2
 
-[node name="MineCounter" type="Label" parent="VBoxContainer/HBoxContainer/HBoxContainerMines"]
+[node name="MineCounter" type="Label" parent="VBoxContainer/HBoxContainer/GridContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 horizontal_alignment = 1
