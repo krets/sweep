@@ -7,6 +7,10 @@ extends Control
 @export var misclick_max: int = 4
 @export var misclick_clear: float = 2.0
 @export var points_per_tile: int = 1
+@export var points_color_bonus: Color = Color(1,.8, 0, 1)
+@export var points_color_normal: Color = Color(1, 1, 1, 1)
+@export var end_overlay_win: Color = Color(0,1,0)
+@export var end_overlay_die: Color = Color(1,0,0)
 
 var cell_scene = preload("res://Cell.tscn")
 var grid: Array = []
@@ -27,12 +31,14 @@ var points_bonus: int = 0
 @onready var status_label: Label = %StatusLabel
 @onready var mine_counter: Label = %MineCounter
 @onready var restart_button: Button = %RestartButton
-@onready var overlay_panel: Panel = %OverlayPanel
+@onready var overlay: Control = %Overlay
 @onready var overlay_label: Label = %OverlayLabel
 @onready var overlay_restart_button: Button = %OverlayRestartButton
 @onready var points_label: Label = %PointsLabel
+@onready var overlay_panel_bg: Panel = %OverlayBackgroundPanel
 
 func _ready():
+
 	overlay_restart_button.pressed.connect(new_game)
 	restart_button.pressed.connect(new_game)
 	# Setup misclick cooldown timer
@@ -52,6 +58,9 @@ func _ready():
 	new_game()
 
 func new_game():
+	var max_mines = (grid_width * grid_height) - 1
+	print("Maxmines: %s count: %s" % [max_mines, mine_count])
+	mine_count = min(mine_count, max_mines)
 	misclick_counter = 0
 	points = 0
 	points_bonus = 0
@@ -59,7 +68,8 @@ func new_game():
 	misclick_locked = false
 	misclick_timer.stop()
 	# Clear existing grid
-	overlay_panel.visible = false
+	overlay_panel_bg.modulate = Color(1, 1, 1, 1)
+	overlay.visible = false
 	for row in grid:
 		for cell in row:
 			cell.queue_free()
@@ -137,9 +147,13 @@ func _on_cell_clicked(cell: Cell):
 	if cell.is_mine:
 		game_over = true
 		reveal_all_mines()
-		status_label.text = "Game Over! You hit a mine!"
+		status_label.text = "💥 Game Over! 💥"
 		overlay_label.text = status_label.text
-		overlay_panel.visible = true
+		overlay_panel_bg.modulate = end_overlay_die
+
+		overlay.visible = true
+		var tween = create_tween()
+		tween.tween_property(overlay_panel_bg, "modulate:a", .7, .25)
 	else:
 		reveal_cell(cell.x, cell.y)
 		check_win()
@@ -188,8 +202,15 @@ func check_win():
 	var total_safe_cells = (grid_width * grid_height) - mine_count
 	if cells_revealed == total_safe_cells:
 		game_over = true
+		
+
 		overlay_label.text = "You Win! All safe cells revealed!"
-		overlay_panel.visible = true
+		overlay_panel_bg.modulate = end_overlay_win
+		overlay.visible = true
+
+		var tween = create_tween()
+		tween.tween_property(overlay_panel_bg, "modulate:a", .7, .5)
+		
 		status_label.text = overlay_label.text
 		# Optionally reveal all mines
 		for row in grid:
@@ -234,14 +255,8 @@ func _on_cell_chorded_left(cell: Cell):
 		$Sounds/LockedSound.play()
 		return
 	var neighbors = get_neighboring_cells_by_state(cell)
-	var flagged = neighbors["flagged"].size()
-	# Only chord if flag count matches number
-	if flagged == cell.adjacent_mines:
-		for adj_cell in neighbors["unexposed"]:
-			_on_cell_clicked(adj_cell)
-	elif neighbors["unexposed"].size() > 0:
-		_misclick()
-
+	for adj_cell in neighbors["unexposed"]:
+		_on_cell_clicked(adj_cell)
 
 func _on_cell_chorded_right(cell: Cell):
 	if game_over:
@@ -298,4 +313,8 @@ func _on_countdowntick():
 		return
 	points_bonus = max(0, points_bonus - 1)
 	points_label.text = str(cells_revealed * points_per_tile + points_bonus)
+	if points_bonus > 0:
+		points_label.modulate = points_color_bonus
+	else:
+		points_label.modulate = points_color_normal
 	pass

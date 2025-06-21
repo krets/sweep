@@ -11,14 +11,35 @@ signal chorded_right(cell)
 @export var adjacent_mines: int = 0
 @export var is_revealed: bool = false
 @export var is_flagged: bool = false
+@export var adjacent_color_one: Color = Color(0, 1, 0)
+@export var adjacent_color_two: Color = Color(0.5, 0.5, 0)  
+@export var adjacent_color_thr: Color = Color(1, 1, 0)
+@export var adjacent_color_fou: Color = Color(1, 0.5, 0)
+@export var adjacent_color_fiv: Color = Color(1, 0, 0) 
+@export var adjacent_color_six: Color = Color(1, .34, 0.99)  
+@export var adjacent_color_sev: Color = Color(0.42, .30, 1)
+@export var adjacent_color_eig: Color = Color(0, .7, .73)
+
+
 
 var x: int
 var y: int
 
 @onready var button: Button = $Button
 @onready var label: Label = $Label
+@onready var adjacent_colors: Array[Color] = [
+	adjacent_color_one,
+	adjacent_color_two,
+	adjacent_color_thr,
+	adjacent_color_fou,
+	adjacent_color_fiv,
+	adjacent_color_six,
+	adjacent_color_sev,
+	adjacent_color_eig,
+]
 
 func _ready():
+
 	button.pressed.connect(_on_button_pressed)
 	button.gui_input.connect(_on_button_input)
 	update_display()
@@ -53,16 +74,7 @@ func update_display():
 			modulate = Color.RED
 		elif adjacent_mines > 0:
 			label.text = str(adjacent_mines)
-			# Color code numbers
-			match adjacent_mines:
-				1: label.modulate = Color.BLUE
-				2: label.modulate = Color.GREEN
-				3: label.modulate = Color.RED
-				4: label.modulate = Color.DARK_BLUE
-				5: label.modulate = Color.DARK_RED
-				6: label.modulate = Color.CYAN
-				7: label.modulate = Color.BLACK
-				8: label.modulate = Color.GRAY
+			label.modulate = adjacent_colors[adjacent_mines - 1]
 		else:
 			label.text = ""
 			modulate = Color(0.8, 0.8, 0.8)

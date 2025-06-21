@@ -20,6 +20,14 @@ offset_bottom = -638.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_yh0nt")
+adjacent_color_one = Color(0, 0.513726, 1, 1)
+adjacent_color_two = Color(0, 0.501961, 0, 1)
+adjacent_color_thr = Color(0.746585, 2.00946e-06, 8.66354e-07, 1)
+adjacent_color_fou = Color(0, 0.176471, 0.8, 1)
+adjacent_color_fiv = Color(0.464984, 0.219665, 0.116755, 1)
+adjacent_color_six = Color(0, 0.945098, 0.980392, 1)
+adjacent_color_sev = Color(0, 0, 0, 1)
+adjacent_color_eig = Color(0.34, 0.34, 0.34, 1)
 
 [node name="Button" type="Button" parent="."]
 layout_mode = 1
