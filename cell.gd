@@ -39,27 +39,27 @@ var y: int
 ]
 
 func _ready():
-
-	button.pressed.connect(_on_button_pressed)
 	button.gui_input.connect(_on_button_input)
 	update_display()
 
-func _on_button_pressed():
-	if not is_flagged:
-		cell_clicked.emit(self)
-
 func _on_button_input(event):
 	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-			if is_revealed and adjacent_mines > 0:
-				chorded_right.emit(self)
-			elif not is_revealed:
-				is_flagged = !is_flagged
-				cell_flagged.emit(self)
-				update_display()
-		elif event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			if is_revealed and adjacent_mines > 0:
-				chorded_left.emit(self)
+		if event.button_index == MOUSE_BUTTON_RIGHT and not event.pressed:
+			if button.get_rect().has_point(button.get_local_mouse_position()):
+				if is_revealed and adjacent_mines > 0:
+					chorded_right.emit(self)
+				elif not is_revealed:
+					print("Right click on unrevealed cell. Current flag state: ", is_flagged)
+					is_flagged = !is_flagged
+					print("New flag state: ", is_flagged)
+					cell_flagged.emit(self)
+					update_display()
+		elif event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+			if button.get_rect().has_point(button.get_local_mouse_position()):
+				if is_revealed and adjacent_mines > 0:
+					chorded_left.emit(self)
+				if not is_revealed:
+					cell_clicked.emit(self)
 
 func reveal():
 	is_revealed = true

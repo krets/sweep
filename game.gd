@@ -11,6 +11,10 @@ extends Control
 @export var points_color_normal: Color = Color(1, 1, 1, 1)
 @export var end_overlay_win: Color = Color(0,1,0)
 @export var end_overlay_die: Color = Color(1,0,0)
+@export var cell_normal: Color = Color(.3, .3, .4)
+@export var cell_hover: Color = Color(.8, .2, .6)
+@export var cell_exposed: Color = Color(.8, .2, .6)
+
 
 var cell_scene = preload("res://Cell.tscn")
 var grid: Array = []
@@ -25,12 +29,12 @@ var countdown_timer: Timer = null
 
 var points: int = 0
 var points_bonus: int = 0
-
+var cell_style_normal: StyleBoxFlat = null
+var cell_style_hover: StyleBoxFlat = null
+var cell_label_bg: StyleBoxFlat = null
 
 @onready var grid_container: GridContainer = %GridContainer
-@onready var status_label: Label = %StatusLabel
 @onready var mine_counter: Label = %MineCounter
-@onready var restart_button: Button = %RestartButton
 @onready var overlay: Control = %Overlay
 @onready var overlay_label: Label = %OverlayLabel
 @onready var overlay_restart_button: Button = %OverlayRestartButton
@@ -38,9 +42,14 @@ var points_bonus: int = 0
 @onready var overlay_panel_bg: Panel = %OverlayBackgroundPanel
 
 func _ready():
-
+	cell_style_normal = StyleBoxFlat.new()
+	cell_style_normal.bg_color = cell_normal
+	cell_style_hover = StyleBoxFlat.new()
+	cell_style_hover.bg_color = cell_hover
+	cell_label_bg = StyleBoxFlat.new()
+	cell_label_bg.bg_color = cell_exposed
+	
 	overlay_restart_button.pressed.connect(new_game)
-	restart_button.pressed.connect(new_game)
 	# Setup misclick cooldown timer
 	misclick_timer = Timer.new()
 	misclick_timer.wait_time = misclick_clear
@@ -84,11 +93,15 @@ func new_game():
 	# Setup grid container
 	grid_container.columns = grid_width
 	
+	
 	# Create cells
 	for y in range(grid_height):
 		var row = []
 		for x in range(grid_width):
 			var cell = cell_scene.instantiate()
+			cell.get_node("Button").add_theme_stylebox_override("normal", cell_style_normal)
+			cell.get_node("Button").add_theme_stylebox_override("hover", cell_style_hover)
+			#cell.get_node("Label").add_theme_stylebox_override("normal", cell_label_bg)
 			cell.x = x
 			cell.y = y
 			cell.custom_minimum_size = Vector2(cell_size, cell_size)
@@ -101,7 +114,6 @@ func new_game():
 		grid.append(row)
 	
 	update_mine_counter()
-	status_label.text = "Click any cell to start!"
 
 func place_mines(avoid_x: int, avoid_y: int):
 	var mines_placed = 0
@@ -136,24 +148,24 @@ func count_adjacent_mines(x: int, y: int) -> int:
 	return count
 
 func _on_cell_clicked(cell: Cell):
-	if game_over:
+	if game_over or cell.is_flagged:
 		return
 	
 	if first_click:
 		first_click = false
 		place_mines(cell.x, cell.y)
-		status_label.text = "Game in progress"
 	
 	if cell.is_mine:
 		game_over = true
 		reveal_all_mines()
-		status_label.text = "💥 Game Over! 💥"
-		overlay_label.text = status_label.text
+		overlay_label.text = "💥 Game Over! 💥"
 		overlay_panel_bg.modulate = end_overlay_die
-
+		overlay_panel_bg.modulate.a = 0
 		overlay.visible = true
 		var tween = create_tween()
+		$Sounds/FxEarthquake.play()
 		tween.tween_property(overlay_panel_bg, "modulate:a", .7, .25)
+
 	else:
 		reveal_cell(cell.x, cell.y)
 		check_win()
@@ -203,22 +215,19 @@ func check_win():
 	if cells_revealed == total_safe_cells:
 		game_over = true
 		
-
-		overlay_label.text = "You Win! All safe cells revealed!"
-		overlay_panel_bg.modulate = end_overlay_win
-		overlay.visible = true
-
-		var tween = create_tween()
-		tween.tween_property(overlay_panel_bg, "modulate:a", .7, .5)
-		
-		status_label.text = overlay_label.text
-		# Optionally reveal all mines
 		for row in grid:
 			for cell in row:
 				if cell.is_mine and not cell.is_flagged:
 					cell.is_flagged = true
 					cell.update_display()
 					
+		overlay_label.text = "You Win! All safe cells revealed!"
+		overlay_panel_bg.modulate = end_overlay_win
+		overlay_panel_bg.modulate.a = 0
+		overlay.visible = true
+		var tween = create_tween()
+		tween.tween_property(overlay_panel_bg, "modulate:a", .7, 1)
+		tween.finished.connect($Sounds/WinnerTune.play)
 
 # Returns a Dictionary of arrays:
 # {"flagged": [...], "unexposed": [...], "revealed": [...], "all": [...]}

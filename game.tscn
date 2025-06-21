@@ -1,8 +1,13 @@
-[gd_scene load_steps=5 format=3 uid="uid://bd2h5hfjso30y"]
+[gd_scene load_steps=8 format=3 uid="uid://bd2h5hfjso30y"]
 
 [ext_resource type="Script" uid="uid://dfxr7f6mk2b7c" path="res://game.gd" id="1_80nbo"]
-[ext_resource type="AudioStream" uid="uid://krj7it85ivr2" path="res://sounds/mixkit-light-button-2580.wav" id="2_e2o6t"]
-[ext_resource type="AudioStream" uid="uid://dqsrwycb3j2j3" path="res://sounds/mixkit-safe-lock-2853.wav" id="2_feb5d"]
+[ext_resource type="AudioStream" uid="uid://72fn7uuhnm2r" path="res://sounds/bassguit_hit.wav" id="2_fc0e3"]
+[ext_resource type="AudioStream" uid="uid://c65idtgxwnsjx" path="res://sounds/side_hit.wav" id="3_7jktm"]
+[ext_resource type="AudioStream" uid="uid://bts0caqw8gya2" path="res://sounds/fx_earthquake.wav" id="4_ryrav"]
+[ext_resource type="AudioStream" uid="uid://davaql5r7fqdb" path="res://sounds/winner_tune.wav" id="5_7jktm"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7jktm"]
+bg_color = Color(0.172833, 0.172833, 0.172833, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_feb5d"]
 bg_color = Color(1, 1, 1, 1)
@@ -17,9 +22,19 @@ grow_vertical = 2
 script = ExtResource("1_80nbo")
 grid_width = 26
 grid_height = 13
-mine_count = 45
 end_overlay_win = Color(0, 0.513002, 1.92523e-07, 1)
 end_overlay_die = Color(0.579254, 1.97336e-06, 3.85046e-07, 1)
+cell_normal = Color(0.402675, 0.418932, 0.46802, 1)
+cell_hover = Color(0.4225, 0.471792, 0.65, 1)
+
+[node name="BG" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_7jktm")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 0
@@ -31,17 +46,6 @@ offset_bottom = 50.0
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 alignment = 1
-
-[node name="StatusLabel" type="Label" parent="VBoxContainer/HBoxContainer"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-
-[node name="RestartButton" type="Button" parent="VBoxContainer/HBoxContainer"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-text = "New Game"
 
 [node name="GridContainer" type="GridContainer" parent="VBoxContainer/HBoxContainer"]
 layout_mode = 2
@@ -73,6 +77,7 @@ layout_mode = 2
 
 [node name="Overlay" type="Control" parent="."]
 unique_name_in_owner = true
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -123,7 +128,13 @@ text = "Play Again"
 [node name="Sounds" type="Node" parent="."]
 
 [node name="LockedSound" type="AudioStreamPlayer" parent="Sounds"]
-stream = ExtResource("2_feb5d")
+stream = ExtResource("2_fc0e3")
 
 [node name="ErrorSound" type="AudioStreamPlayer" parent="Sounds"]
-stream = ExtResource("2_e2o6t")
+stream = ExtResource("3_7jktm")
+
+[node name="FxEarthquake" type="AudioStreamPlayer" parent="Sounds"]
+stream = ExtResource("4_ryrav")
+
+[node name="WinnerTune" type="AudioStreamPlayer" parent="Sounds"]
+stream = ExtResource("5_7jktm")
