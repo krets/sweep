@@ -33,21 +33,23 @@ var cell_style_normal: StyleBoxFlat = null
 var cell_style_hover: StyleBoxFlat = null
 var cell_label_bg: StyleBoxFlat = null
 
-@onready var grid_container: GridContainer = %GridContainer
+@onready var grid_container: GridContainer = %MinefieldGrid
 @onready var mine_counter: Label = %MineCounter
 @onready var overlay: Control = %Overlay
 @onready var overlay_label: Label = %OverlayLabel
 @onready var overlay_restart_button: Button = %OverlayRestartButton
 @onready var points_label: Label = %PointsLabel
+@onready var points_breakdown: Label = %PointsBreakdownLabel
+
 @onready var overlay_panel_bg: Panel = %OverlayBackgroundPanel
 
 func _ready():
-	cell_style_normal = StyleBoxFlat.new()
-	cell_style_normal.bg_color = cell_normal
-	cell_style_hover = StyleBoxFlat.new()
-	cell_style_hover.bg_color = cell_hover
-	cell_label_bg = StyleBoxFlat.new()
-	cell_label_bg.bg_color = cell_exposed
+	#cell_style_normal = StyleBoxFlat.new()
+	#cell_style_normal.bg_color = cell_normal
+	#cell_style_hover = StyleBoxFlat.new()
+	#cell_style_hover.bg_color = cell_hover
+	#cell_label_bg = StyleBoxFlat.new()
+	#cell_label_bg.bg_color = cell_exposed
 	
 	overlay_restart_button.pressed.connect(new_game)
 	# Setup misclick cooldown timer
@@ -74,6 +76,7 @@ func new_game():
 	points = 0
 	points_bonus = 0
 	points_label.text = "0"
+	points_breakdown.text = ""
 	misclick_locked = false
 	misclick_timer.stop()
 	# Clear existing grid
@@ -99,9 +102,10 @@ func new_game():
 		var row = []
 		for x in range(grid_width):
 			var cell = cell_scene.instantiate()
-			cell.get_node("Button").add_theme_stylebox_override("normal", cell_style_normal)
-			cell.get_node("Button").add_theme_stylebox_override("hover", cell_style_hover)
+			#cell.get_node("Button").add_theme_stylebox_override("normal", cell_style_normal)
+			#cell.get_node("Button").add_theme_stylebox_override("hover", cell_style_hover)
 			#cell.get_node("Label").add_theme_stylebox_override("normal", cell_label_bg)
+			
 			cell.x = x
 			cell.y = y
 			cell.custom_minimum_size = Vector2(cell_size, cell_size)
@@ -121,8 +125,12 @@ func place_mines(avoid_x: int, avoid_y: int):
 		var x = randi() % grid_width
 		var y = randi() % grid_height
 		
-		# Don't place mine on first click or if already has mine
-		if (x == avoid_x and y == avoid_y) or grid[y][x].is_mine:
+		# Skip if on first click or already a mine
+		if grid[y][x].is_mine:
+			continue
+		
+		# Skip if cell is first click or adjacent to first click
+		if abs(x - avoid_x) <= 1 and abs(y - avoid_y) <= 1:
 			continue
 		
 		grid[y][x].is_mine = true
@@ -179,6 +187,8 @@ func reveal_cell(x: int, y: int):
 		return
 	
 	cell.reveal()
+	$Sounds/ClearTiles.pitch_scale = randf_range(0.9, 1.1)
+	$Sounds/ClearTiles.play()
 	cells_revealed += 1
 	points_bonus += points_per_tile
 	
@@ -202,8 +212,10 @@ func _on_cell_flagged(cell: Cell):
 	
 	if cell.is_flagged:
 		flags_placed += 1
+		$Sounds/PlantFlag.play()
 	else:
 		flags_placed -= 1
+		$Sounds/UnPlantFlag.play()
 	
 	update_mine_counter()
 
@@ -282,6 +294,7 @@ func _on_cell_chorded_right(cell: Cell):
 		for adj_cell in unexposed:
 			if not adj_cell.is_flagged:
 				adj_cell.is_flagged = true
+				$Sounds/PlantFlag.play()
 				flags_placed += 1
 				adj_cell.update_display()
 		update_mine_counter()
@@ -324,6 +337,8 @@ func _on_countdowntick():
 	points_label.text = str(cells_revealed * points_per_tile + points_bonus)
 	if points_bonus > 0:
 		points_label.modulate = points_color_bonus
+		points_breakdown.text = "(%d + %d)" % [cells_revealed * points_per_tile, points_bonus]
 	else:
 		points_label.modulate = points_color_normal
+		points_breakdown.text = ""
 	pass

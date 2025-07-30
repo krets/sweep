@@ -1,13 +1,19 @@
-[gd_scene load_steps=8 format=3 uid="uid://bd2h5hfjso30y"]
+[gd_scene load_steps=12 format=3 uid="uid://bd2h5hfjso30y"]
 
 [ext_resource type="Script" uid="uid://dfxr7f6mk2b7c" path="res://game.gd" id="1_80nbo"]
 [ext_resource type="AudioStream" uid="uid://72fn7uuhnm2r" path="res://sounds/bassguit_hit.wav" id="2_fc0e3"]
 [ext_resource type="AudioStream" uid="uid://c65idtgxwnsjx" path="res://sounds/side_hit.wav" id="3_7jktm"]
 [ext_resource type="AudioStream" uid="uid://bts0caqw8gya2" path="res://sounds/fx_earthquake.wav" id="4_ryrav"]
 [ext_resource type="AudioStream" uid="uid://davaql5r7fqdb" path="res://sounds/winner_tune.wav" id="5_7jktm"]
+[ext_resource type="AudioStream" uid="uid://cwcalj31kbbt" path="res://sounds/Fantasy_Game_Footstep_Stone_Light_H.wav" id="5_j5wjh"]
+[ext_resource type="AudioStream" uid="uid://flg5oocxvtd2" path="res://sounds/Fantasy_Game_Footstep_Stone_Light_E.wav" id="6_vef74"]
+[ext_resource type="AudioStream" uid="uid://jrtr44ico86c" path="res://sounds/Fantasy_Game_Footstep_Stone_Light_C.wav" id="7_hve3p"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7jktm"]
-bg_color = Color(0.172833, 0.172833, 0.172833, 1)
+bg_color = Color(0.24, 0.24, 0.24, 1)
+
+[sub_resource type="Theme" id="Theme_j5wjh"]
+default_font_size = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_feb5d"]
 bg_color = Color(1, 1, 1, 1)
@@ -20,8 +26,10 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_80nbo")
-grid_width = 26
-grid_height = 13
+grid_width = 20
+grid_height = 16
+mine_count = 66
+cell_size = 32
 end_overlay_win = Color(0, 0.513002, 1.92523e-07, 1)
 end_overlay_die = Color(0.579254, 1.97336e-06, 3.85046e-07, 1)
 cell_normal = Color(0.402675, 0.418932, 0.46802, 1)
@@ -37,43 +45,59 @@ grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_7jktm")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
-layout_mode = 0
-offset_left = 5.0
-offset_top = 10.0
-offset_right = 108.0
-offset_bottom = 50.0
+layout_mode = 1
+anchors_preset = 13
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -29.0
+offset_right = 29.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 alignment = 1
 
-[node name="GridContainer" type="GridContainer" parent="VBoxContainer/HBoxContainer"]
+[node name="StatsGrid" type="GridContainer" parent="VBoxContainer/HBoxContainer"]
 layout_mode = 2
 columns = 2
 
-[node name="PointsTitleLabel" type="Label" parent="VBoxContainer/HBoxContainer/GridContainer"]
+[node name="PointsTitleLabel" type="Label" parent="VBoxContainer/HBoxContainer/StatsGrid"]
 layout_mode = 2
 text = "Points:"
 horizontal_alignment = 2
 
-[node name="PointsLabel" type="Label" parent="VBoxContainer/HBoxContainer/GridContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/HBoxContainer/StatsGrid"]
+layout_mode = 2
+
+[node name="PointsLabel" type="Label" parent="VBoxContainer/HBoxContainer/StatsGrid/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="MinesTitleLabel" type="Label" parent="VBoxContainer/HBoxContainer/GridContainer"]
+[node name="PointsBreakdownLabel" type="Label" parent="VBoxContainer/HBoxContainer/StatsGrid/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "(Points + Bonus Points)"
+theme = SubResource("Theme_j5wjh")
+
+[node name="MinesTitleLabel" type="Label" parent="VBoxContainer/HBoxContainer/StatsGrid"]
 layout_mode = 2
 text = "Mines:"
 horizontal_alignment = 2
 
-[node name="MineCounter" type="Label" parent="VBoxContainer/HBoxContainer/GridContainer"]
+[node name="MineCounter" type="Label" parent="VBoxContainer/HBoxContainer/StatsGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="GridContainer" type="GridContainer" parent="VBoxContainer"]
+[node name="MinefieldGrid" type="GridContainer" parent="VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/h_separation = 0
+theme_override_constants/v_separation = 0
 
 [node name="Overlay" type="Control" parent="."]
 unique_name_in_owner = true
@@ -108,7 +132,7 @@ grow_horizontal = 2
 grow_vertical = 2
 alignment = 1
 
-[node name="GridContainer" type="GridContainer" parent="Overlay/VBoxContainer"]
+[node name="ScoreGrid" type="GridContainer" parent="Overlay/VBoxContainer"]
 layout_mode = 2
 
 [node name="OverlayLabel" type="Label" parent="Overlay/VBoxContainer"]
@@ -135,6 +159,15 @@ stream = ExtResource("3_7jktm")
 
 [node name="FxEarthquake" type="AudioStreamPlayer" parent="Sounds"]
 stream = ExtResource("4_ryrav")
+
+[node name="PlantFlag" type="AudioStreamPlayer" parent="Sounds"]
+stream = ExtResource("5_j5wjh")
+
+[node name="UnPlantFlag" type="AudioStreamPlayer" parent="Sounds"]
+stream = ExtResource("6_vef74")
+
+[node name="ClearTiles" type="AudioStreamPlayer" parent="Sounds"]
+stream = ExtResource("7_hve3p")
 
 [node name="WinnerTune" type="AudioStreamPlayer" parent="Sounds"]
 stream = ExtResource("5_7jktm")
