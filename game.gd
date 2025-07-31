@@ -39,8 +39,10 @@ var stages = [
 	Stage.new(18, 14, 47),
 	Stage.new(20, 16, 66)
 ]
-var current_stage_index: int = 0
 
+
+
+var current_stage_index: int = 0
 var cell_scene = preload("res://Cell.tscn")
 var grid: Array = []
 var first_click: bool = true
@@ -65,6 +67,7 @@ var current_stage: Stage = null
 @onready var overlay_panel_bg: Panel = %OverlayBackgroundPanel
 
 func _ready():
+	HighScores.load_scores()
 	overlay_restart_button.pressed.connect(new_game)
 	# Setup misclick cooldown timer
 	misclick_timer = Timer.new()
@@ -189,9 +192,7 @@ func _on_cell_clicked(cell: Cell):
 		var tween = create_tween()
 		$Sounds/FxEarthquake.play()
 		tween.tween_property(overlay_panel_bg, "modulate:a", .7, .25)
-		for stage in stages:
-			stage.reset()
-			current_stage_index = 0
+		end_game()
 	else:
 		reveal_cell(cell.x, cell.y)
 		check_win()
@@ -251,12 +252,13 @@ func check_win():
 					cell.is_flagged = true
 					cell.update_display()
 		current_stage.points = get_points()
-		overlay_label.text = "You Win! All safe cells revealed!"
-		overlay_restart_button.text = "Play Again"
-		if current_stage_index < stages.size() - 1:
-			current_stage_index += 1
-			overlay_label.text = "Stage Cleared!"
-			overlay_restart_button.text = "Continue"
+		overlay_label.text = "Stage Cleared!"
+		overlay_restart_button.text = "Continue"
+		current_stage_index += 1
+		if current_stage_index == stages.size():
+			overlay_label.text = "You Win! Game over!"
+			overlay_restart_button.text = "Play Again"
+			end_game()
 			
 		overlay_panel_bg.modulate = end_overlay_win
 		overlay_panel_bg.modulate.a = 0
@@ -386,3 +388,10 @@ func update_points():
 	else:
 		points_label.modulate = points_color_normal
 		points_breakdown.text = ""
+
+func end_game():
+	if HighScores.save_score(get_all_points()):
+		print("You've gotten a top score!")
+	for stage in stages:
+		stage.reset()
+		current_stage_index = 0
