@@ -46,12 +46,8 @@ var misclick_counter: int = 0
 var misclick_locked: bool = false
 var misclick_timer: Timer = null
 var countdown_timer: Timer = null
-
 var points: int = 0
 var points_bonus: int = 0
-var cell_style_normal: StyleBoxFlat = null
-var cell_style_hover: StyleBoxFlat = null
-var cell_label_bg: StyleBoxFlat = null
 
 @onready var grid_container: GridContainer = %MinefieldGrid
 @onready var mine_counter: Label = %MineCounter
@@ -64,13 +60,6 @@ var cell_label_bg: StyleBoxFlat = null
 @onready var overlay_panel_bg: Panel = %OverlayBackgroundPanel
 
 func _ready():
-	#cell_style_normal = StyleBoxFlat.new()
-	#cell_style_normal.bg_color = cell_normal
-	#cell_style_hover = StyleBoxFlat.new()
-	#cell_style_hover.bg_color = cell_hover
-	#cell_label_bg = StyleBoxFlat.new()
-	#cell_label_bg.bg_color = cell_exposed
-	
 	overlay_restart_button.pressed.connect(new_game)
 	# Setup misclick cooldown timer
 	misclick_timer = Timer.new()
@@ -126,9 +115,6 @@ func new_game():
 		var row = []
 		for x in range(grid_width):
 			var cell = cell_scene.instantiate()
-			#cell.get_node("Button").add_theme_stylebox_override("normal", cell_style_normal)
-			#cell.get_node("Button").add_theme_stylebox_override("hover", cell_style_hover)
-			#cell.get_node("Label").add_theme_stylebox_override("normal", cell_label_bg)
 			
 			cell.x = x
 			cell.y = y
