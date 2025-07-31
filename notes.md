@@ -1,14 +1,9 @@
 ## ToDo
- - Top scores displayed on startup/help screen
  - End-game score screen with breakdown
-   - animate points adding up
+   - animate points adding up for latest stage only!
    - show points per stage
-   - highlight bonuses
+   - highlight bonuses in color #FC0
    - Show final score
- - Current stage indicated on hud (index 0 is stage 1)
- - Pause option
-   - overlay to hide the board
-   - the overlay should contain a description of how to play the game
-   - on-screen with Help/Pause
-   - Pause automatically happens when game loses focus
-   - hotkey for pause (Esc/F9/Pause)
+ - pause overlay must hide the board!
+ - notify user if high-score is added to list
+ - PauseButton obscures the richtextlabel

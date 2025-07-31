@@ -16,7 +16,6 @@ extends Control
 @export var cell_exposed: Color = Color(.8, .2, .6)
 @export var hard_mode: bool = false
 
-
 class Stage:
 	var columns
 	var rows
@@ -28,19 +27,17 @@ class Stage:
 		self.rows = rows
 		self.mines = mines
 		self.reset()
-	
+
 	func reset():
 		self.points = 0
 
 var stages = [
-	Stage.new(9, 9, 10),
-	Stage.new(12, 11, 19),
-	Stage.new(15, 13, 32),
-	Stage.new(18, 14, 47),
-	Stage.new(20, 16, 66)
+	Stage.new(10,10,10),
+	Stage.new(12,11,19),
+	Stage.new(15,13,32),
+	Stage.new(18,14,47),
+	Stage.new(20,16,66)
 ]
-
-
 
 var current_stage_index: int = 0
 var cell_scene = preload("res://Cell.tscn")
@@ -55,6 +52,8 @@ var misclick_timer: Timer = null
 var countdown_timer: Timer = null
 var points_bonus: int = 0
 var current_stage: Stage = null
+var is_paused: bool = false
+var was_paused_before_focus: bool = false
 
 @onready var grid_container: GridContainer = %MinefieldGrid
 @onready var mine_counter: Label = %MineCounter
@@ -63,19 +62,27 @@ var current_stage: Stage = null
 @onready var overlay_restart_button: Button = %OverlayRestartButton
 @onready var points_label: Label = %PointsLabel
 @onready var points_breakdown: RichTextLabel = %PointsBreakdownLabel
-
 @onready var overlay_panel_bg: Panel = %OverlayBackgroundPanel
+@onready var stage_label: Label = %StageLabel
+@onready var pause_overlay: Control = %PauseOverlay
+@onready var pause_button: Button = %PauseButton
+@onready var high_scores_list: VBoxContainer = %HighScoresList
+@onready var score_breakdown_container: VBoxContainer = %ScoreBreakdownContainer
+@onready var final_score_label: Label = %FinalScoreLabel
+@onready var stage_scores_container: VBoxContainer = %StageScoresContainer
 
 func _ready():
 	HighScores.load_scores()
 	overlay_restart_button.pressed.connect(new_game)
+	pause_button.pressed.connect(toggle_pause)
+	
 	# Setup misclick cooldown timer
 	misclick_timer = Timer.new()
 	misclick_timer.wait_time = misclick_clear
 	misclick_timer.one_shot = false
 	misclick_timer.autostart = false
 	misclick_timer.timeout.connect(_on_misclick_timer_tick)
-	
+
 	countdown_timer = Timer.new()
 	countdown_timer.wait_time = 1
 	countdown_timer.one_shot = false
@@ -83,9 +90,69 @@ func _ready():
 	countdown_timer.timeout.connect(_on_countdowntick)
 	add_child(misclick_timer)
 	add_child(countdown_timer)
+	
+	# Show high scores on startup
+	display_high_scores()
+	
+	# Connect window focus signals
+	get_window().focus_entered.connect(_on_window_focus_entered)
+	get_window().focus_exited.connect(_on_window_focus_exited)
+	
 	new_game()
 
-func new_game():   
+func _input(event):
+	if event.is_action_pressed("pause"):
+		toggle_pause()
+
+func _notification(what):
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		if not is_paused:
+			was_paused_before_focus = false
+			set_paused(true)
+		else:
+			was_paused_before_focus = true
+	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		if not was_paused_before_focus:
+			set_paused(false)
+
+func _on_window_focus_entered():
+	pass
+
+func _on_window_focus_exited():
+	pass
+
+func toggle_pause():
+	set_paused(!is_paused)
+
+func set_paused(paused: bool):
+	is_paused = paused
+	pause_overlay.visible = is_paused
+	if is_paused:
+		countdown_timer.paused = true
+		misclick_timer.paused = true
+	else:
+		countdown_timer.paused = false
+		misclick_timer.paused = false
+
+func display_high_scores():
+	# Clear existing scores
+	for child in high_scores_list.get_children():
+		child.queue_free()
+	
+	# Add high scores
+	for i in range(min(10, HighScores.scores.size())):
+		var score_label = Label.new()
+		score_label.text = "%d. %d points" % [i + 1, HighScores.scores[i]]
+		score_label.add_theme_font_size_override("font_size", 16)
+		high_scores_list.add_child(score_label)
+	
+	if HighScores.scores.size() == 0:
+		var no_scores_label = Label.new()
+		no_scores_label.text = "No high scores yet!"
+		no_scores_label.add_theme_font_size_override("font_size", 16)
+		high_scores_list.add_child(no_scores_label)
+
+func new_game():
 	current_stage = stages[current_stage_index]
 	grid_width = current_stage.columns
 	grid_height = current_stage.rows
@@ -100,30 +167,36 @@ func new_game():
 	points_breakdown.text = ""
 	misclick_locked = false
 	misclick_timer.stop()
+	
+	# Update stage label
+	stage_label.text = "Stage %d" % (current_stage_index + 1)
+	
 	# Clear existing grid
 	overlay_panel_bg.modulate = Color(1, 1, 1, 1)
 	overlay.visible = false
+	score_breakdown_container.visible = false
 	for row in grid:
 		for cell in row:
 			cell.queue_free()
 	grid.clear()
-	
+
 	# Reset game state
 	first_click = true
 	game_over = false
 	cells_revealed = 0
 	flags_placed = 0
-	
+	is_paused = false
+	pause_overlay.visible = false
+
 	# Setup grid container
 	grid_container.columns = grid_width
-	
-	
+
 	# Create cells
 	for y in range(grid_height):
 		var row = []
 		for x in range(grid_width):
 			var cell = cell_scene.instantiate()
-			
+
 			cell.x = x
 			cell.y = y
 			cell.custom_minimum_size = Vector2(cell_size, cell_size)
@@ -135,7 +208,7 @@ func new_game():
 			cell.center_particles(cell_size)
 			row.append(cell)
 		grid.append(row)
-	
+
 	update_mine_counter()
 
 func place_mines(avoid_x: int, avoid_y: int):
@@ -143,18 +216,18 @@ func place_mines(avoid_x: int, avoid_y: int):
 	while mines_placed < mine_count:
 		var x = randi() % grid_width
 		var y = randi() % grid_height
-		
+
 		# Skip if on first click or already a mine
 		if grid[y][x].is_mine:
 			continue
-		
+
 		# Skip if cell is first click or adjacent to first click
 		if abs(x - avoid_x) <= 1 and abs(y - avoid_y) <= 1:
 			continue
-		
+
 		grid[y][x].is_mine = true
 		mines_placed += 1
-	
+
 	# Calculate adjacent mine counts
 	for y in range(grid_height):
 		for x in range(grid_width):
@@ -175,13 +248,13 @@ func count_adjacent_mines(x: int, y: int) -> int:
 	return count
 
 func _on_cell_clicked(cell: Cell):
-	if game_over or cell.is_flagged:
+	if game_over or cell.is_flagged or is_paused:
 		return
-	
+
 	if first_click:
 		first_click = false
 		place_mines(cell.x, cell.y)
-	
+
 	if cell.is_mine:
 		game_over = true
 		reveal_all_mines()
@@ -192,6 +265,7 @@ func _on_cell_clicked(cell: Cell):
 		var tween = create_tween()
 		$Sounds/FxEarthquake.play()
 		tween.tween_property(overlay_panel_bg, "modulate:a", .7, .25)
+		tween.finished.connect(show_score_breakdown.bind(false))
 		end_game()
 	else:
 		reveal_cell(cell.x, cell.y)
@@ -200,17 +274,17 @@ func _on_cell_clicked(cell: Cell):
 func reveal_cell(x: int, y: int):
 	if x < 0 or x >= grid_width or y < 0 or y >= grid_height:
 		return
-	
+
 	var cell = grid[y][x]
 	if cell.is_revealed or cell.is_flagged:
 		return
-	
+
 	cell.reveal()
 	$Sounds/ClearTiles.pitch_scale = randf_range(0.9, 1.1)
 	$Sounds/ClearTiles.play()
 	cells_revealed += 1
 	points_bonus += points_per_tile
-	
+
 	# If cell has no adjacent mines, reveal neighbors
 	if cell.adjacent_mines == 0 and not cell.is_mine:
 		for dy in range(-1, 2):
@@ -226,16 +300,16 @@ func reveal_all_mines():
 				cell.reveal()
 
 func _on_cell_flagged(cell: Cell):
-	if game_over:
+	if game_over or is_paused:
 		return
-	
+
 	if cell.is_flagged:
 		flags_placed += 1
 		$Sounds/PlantFlag.play()
 	else:
 		flags_placed -= 1
 		$Sounds/UnPlantFlag.play()
-	
+
 	update_mine_counter()
 
 func update_mine_counter():
@@ -245,7 +319,7 @@ func check_win():
 	var total_safe_cells = (grid_width * grid_height) - mine_count
 	if cells_revealed == total_safe_cells:
 		game_over = true
-		
+
 		for row in grid:
 			for cell in row:
 				if cell.is_mine and not cell.is_flagged:
@@ -255,17 +329,85 @@ func check_win():
 		overlay_label.text = "Stage Cleared!"
 		overlay_restart_button.text = "Continue"
 		current_stage_index += 1
-		if current_stage_index == stages.size():
+		var is_final_stage = current_stage_index == stages.size()
+		if is_final_stage:
 			overlay_label.text = "You Win! Game over!"
 			overlay_restart_button.text = "Play Again"
 			end_game()
-			
+
 		overlay_panel_bg.modulate = end_overlay_win
 		overlay_panel_bg.modulate.a = 0
 		overlay.visible = true
 		var tween = create_tween()
 		tween.tween_property(overlay_panel_bg, "modulate:a", .7, 1)
 		tween.finished.connect($Sounds/WinnerTune.play)
+		tween.finished.connect(show_score_breakdown.bind(is_final_stage))
+
+func show_score_breakdown(show_final: bool):
+	score_breakdown_container.visible = true
+	
+	# Clear previous breakdown
+	for child in stage_scores_container.get_children():
+		child.queue_free()
+	
+	# Animate stage scores
+	var total_animated = 0
+	var delay = 0.0
+	
+	for i in range(stages.size()):
+		if stages[i].points > 0 or i == current_stage_index - 1:
+			var stage_score_label = Label.new()
+			stage_score_label.text = "Stage %d: " % (i + 1)
+			stage_score_label.add_theme_font_size_override("font_size", 18)
+			stage_scores_container.add_child(stage_score_label)
+			
+			# Animate points counting up
+			var target_points = stages[i].points
+			if i == current_stage_index - 1:
+				target_points = get_points()
+			
+			animate_score_count(stage_score_label, 0, target_points, delay, i + 1)
+			total_animated += target_points
+			delay += 0.5
+	
+	# Show final score
+	if show_final:
+		final_score_label.visible = true
+		animate_score_count(final_score_label, 0, total_animated, delay + 0.5, 0, "Final Score: ")
+		
+		# Check if it's a high score
+		if HighScores.scores.size() == 0 or total_animated > HighScores.scores[0]:
+			var high_score_label = Label.new()
+			high_score_label.text = "NEW HIGH SCORE!"
+			high_score_label.add_theme_font_size_override("font_size", 24)
+			high_score_label.modulate = Color.YELLOW
+			stage_scores_container.add_child(high_score_label)
+	else:
+		final_score_label.visible = false
+
+func animate_score_count(label: Label, from: int, to: int, delay: float, stage_num: int, prefix: String = ""):
+	await get_tree().create_timer(delay).timeout
+	
+	var duration = 1.0
+	var elapsed = 0.0
+	
+	while elapsed < duration:
+		elapsed += get_process_delta_time()
+		var progress = min(elapsed / duration, 1.0)
+		var current_value = int(lerp(float(from), float(to), progress))
+		
+		if stage_num > 0:
+			label.text = "Stage %d: %d points" % [stage_num, current_value]
+		else:
+			label.text = prefix + str(current_value) + " points"
+		
+		await get_tree().process_frame
+	
+	# Ensure final value is set
+	if stage_num > 0:
+		label.text = "Stage %d: %d points" % [stage_num, to]
+	else:
+		label.text = prefix + str(to) + " points"
 
 # Returns a Dictionary of arrays:
 # {"flagged": [...], "unexposed": [...], "revealed": [...], "all": [...]}
@@ -295,7 +437,7 @@ func get_neighboring_cells_by_state(cell: Cell) -> Dictionary:
 	return neighbors
 
 func _on_cell_chorded_left(cell: Cell):
-	if game_over:
+	if game_over or is_paused:
 		return
 	if misclick_locked:
 		print("locked")
@@ -314,7 +456,7 @@ func _blink_cells(cells: Array):
 		cell.blink_red()
 
 func _on_cell_chorded_right(cell: Cell):
-	if game_over:
+	if game_over or is_paused:
 		return
 	if misclick_locked:
 		print("locked")
@@ -334,14 +476,14 @@ func _on_cell_chorded_right(cell: Cell):
 		update_mine_counter()
 	elif unexposed.size() > 0:
 		_misclick()
-		
+
 func _misclick():
 	misclick_counter += 1
 	var base_pitch = 0.85
 	var max_pitch = 1.05
 	var pitch_range = max_pitch - base_pitch
 	var pitch_scale = base_pitch + (pitch_range * (misclick_counter + 1 / misclick_max))
-	
+
 	if misclick_counter >= misclick_max and not misclick_locked:
 		# Became locked
 		misclick_locked = true
@@ -376,10 +518,10 @@ func get_all_points():
 	return total_points + get_points()
 
 func _on_countdowntick():
-	if not game_over:
+	if not game_over and not is_paused:
 		points_bonus = max(0, points_bonus - 1)
 	update_points()
-	
+
 func update_points():
 	points_label.text = str(get_all_points())
 	if points_bonus > 0:
@@ -395,3 +537,4 @@ func end_game():
 	for stage in stages:
 		stage.reset()
 		current_stage_index = 0
+	display_high_scores()
