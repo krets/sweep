@@ -14,6 +14,7 @@ extends Control
 @export var cell_normal: Color = Color(.3, .3, .4)
 @export var cell_hover: Color = Color(.8, .2, .6)
 @export var cell_exposed: Color = Color(.8, .2, .6)
+@export var hard_mode: bool = false
 
 
 var cell_scene = preload("res://Cell.tscn")
@@ -276,8 +277,16 @@ func _on_cell_chorded_left(cell: Cell):
 		$Sounds/LockedSound.play()
 		return
 	var neighbors = get_neighboring_cells_by_state(cell)
-	for adj_cell in neighbors["unexposed"]:
-		_on_cell_clicked(adj_cell)
+	if hard_mode or cell.adjacent_mines == neighbors["flagged"].size():
+		for adj_cell in neighbors["unexposed"]:
+			_on_cell_clicked(adj_cell)
+	else:
+		_blink_cells(neighbors["unexposed"])
+		_misclick()
+
+func _blink_cells(cells: Array):
+	for cell in cells:
+		cell.blink_red()
 
 func _on_cell_chorded_right(cell: Cell):
 	if game_over:

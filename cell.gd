@@ -77,10 +77,16 @@ func update_display():
 			label.modulate = adjacent_colors[adjacent_mines - 1]
 		else:
 			label.text = ""
-			modulate = Color(0.8, 0.8, 0.8)
+			#modulate = Color(1, 0, 0, 1)
 	else:
 		button.disabled = false
 		if is_flagged:
 			label.text = "🚩"
 		else:
 			label.text = ""
+
+func blink_red():
+	var original = modulate
+	modulate = Color(1,0,0,1)
+	var tween = create_tween()
+	tween.tween_property(self, "modulate", original, 0.3)

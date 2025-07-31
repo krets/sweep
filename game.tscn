@@ -29,7 +29,6 @@ script = ExtResource("1_80nbo")
 grid_width = 20
 grid_height = 16
 mine_count = 66
-cell_size = 32
 end_overlay_win = Color(0, 0.513002, 1.92523e-07, 1)
 end_overlay_die = Color(0.579254, 1.97336e-06, 3.85046e-07, 1)
 cell_normal = Color(0.402675, 0.418932, 0.46802, 1)
