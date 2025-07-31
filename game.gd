@@ -40,7 +40,7 @@ var cell_label_bg: StyleBoxFlat = null
 @onready var overlay_label: Label = %OverlayLabel
 @onready var overlay_restart_button: Button = %OverlayRestartButton
 @onready var points_label: Label = %PointsLabel
-@onready var points_breakdown: Label = %PointsBreakdownLabel
+@onready var points_breakdown: RichTextLabel = %PointsBreakdownLabel
 
 @onready var overlay_panel_bg: Panel = %OverlayBackgroundPanel
 
@@ -348,6 +348,7 @@ func _on_countdowntick():
 	if points_bonus > 0:
 		points_label.modulate = points_color_bonus
 		points_breakdown.text = "(%d + %d)" % [cells_revealed * points_per_tile, points_bonus]
+		points_breakdown.text = "(%d + [color=#FC0]%d[/color])" % [cells_revealed * points_per_tile, points_bonus]
 	else:
 		points_label.modulate = points_color_normal
 		points_breakdown.text = ""
