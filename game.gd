@@ -17,6 +17,25 @@ extends Control
 @export var hard_mode: bool = false
 
 
+class Stage:
+	var columns
+	var rows
+	var mines
+
+	func _init(columns, rows, mines):
+		self.columns = columns
+		self.rows = rows
+		self.mines = mines
+
+var stages = [
+	Stage.new(9, 9, 10),
+	Stage.new(12, 11, 19),
+	Stage.new(15, 13, 32),
+	Stage.new(18, 14, 47),
+	Stage.new(20, 16, 66)
+]
+var current_stage: int = 0
+
 var cell_scene = preload("res://Cell.tscn")
 var grid: Array = []
 var first_click: bool = true
@@ -70,6 +89,10 @@ func _ready():
 	new_game()
 
 func new_game():
+	var stage = stages[current_stage]
+	grid_width = stage.columns
+	grid_height = stage.rows
+	mine_count = stage.mines
 	var max_mines = (grid_width * grid_height) - 1
 	print("Maxmines: %s count: %s" % [max_mines, mine_count])
 	mine_count = min(mine_count, max_mines)
@@ -234,8 +257,14 @@ func check_win():
 				if cell.is_mine and not cell.is_flagged:
 					cell.is_flagged = true
 					cell.update_display()
-					
+		
 		overlay_label.text = "You Win! All safe cells revealed!"
+		overlay_restart_button.text = "Play Again"
+		if current_stage < stages.size() - 1:
+			current_stage += 1
+			overlay_label.text = "Stage Cleared!"
+			overlay_restart_button.text = "Continue"
+			
 		overlay_panel_bg.modulate = end_overlay_win
 		overlay_panel_bg.modulate.a = 0
 		overlay.visible = true
