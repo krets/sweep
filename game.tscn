@@ -16,7 +16,7 @@ bg_color = Color(0.24, 0.24, 0.24, 1)
 default_font_size = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pause"]
-bg_color = Color(0.1, 0.1, 0.1, 0.9)
+bg_color = Color(0.11, 0.11, 0.11, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_feb5d"]
 bg_color = Color(1, 1, 1, 1)
@@ -32,6 +32,7 @@ script = ExtResource("1_80nbo")
 grid_width = 20
 grid_height = 16
 mine_count = 66
+cell_size = 36
 end_overlay_win = Color(0, 0.513002, 1.92523e-07, 1)
 end_overlay_die = Color(0.579254, 1.97336e-06, 3.85046e-07, 1)
 cell_normal = Color(0.402675, 0.418932, 0.46802, 1)
@@ -52,67 +53,67 @@ anchors_preset = 13
 anchor_left = 0.5
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -29.0
-offset_right = 29.0
+offset_left = -200.0
+offset_right = 200.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+[node name="HeaderContainer" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="TopRow" type="HBoxContainer" parent="VBoxContainer/HeaderContainer"]
 layout_mode = 2
 alignment = 1
 
-[node name="StatsGrid" type="GridContainer" parent="VBoxContainer/HBoxContainer"]
+[node name="StatsGrid" type="GridContainer" parent="VBoxContainer/HeaderContainer/TopRow"]
 layout_mode = 2
+size_flags_horizontal = 3
 columns = 2
 
-[node name="StageTitleLabel" type="Label" parent="VBoxContainer/HBoxContainer/StatsGrid"]
+[node name="StageTitleLabel" type="Label" parent="VBoxContainer/HeaderContainer/TopRow/StatsGrid"]
 layout_mode = 2
 text = "Stage:"
 horizontal_alignment = 2
 
-[node name="StageLabel" type="Label" parent="VBoxContainer/HBoxContainer/StatsGrid"]
+[node name="StageLabel" type="Label" parent="VBoxContainer/HeaderContainer/TopRow/StatsGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "1"
 
-[node name="PointsTitleLabel" type="Label" parent="VBoxContainer/HBoxContainer/StatsGrid"]
-layout_mode = 2
-text = "Points:"
-horizontal_alignment = 2
-
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/HBoxContainer/StatsGrid"]
-layout_mode = 2
-
-[node name="PointsLabel" type="Label" parent="VBoxContainer/HBoxContainer/StatsGrid/HBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="PointsBreakdownLabel" type="RichTextLabel" parent="VBoxContainer/HBoxContainer/StatsGrid/HBoxContainer"]
-unique_name_in_owner = true
-clip_contents = false
-layout_mode = 2
-theme = SubResource("Theme_j5wjh")
-bbcode_enabled = true
-scroll_active = false
-autowrap_mode = 0
-horizontal_alignment = 3
-vertical_alignment = 3
-
-[node name="MinesTitleLabel" type="Label" parent="VBoxContainer/HBoxContainer/StatsGrid"]
+[node name="MinesTitleLabel" type="Label" parent="VBoxContainer/HeaderContainer/TopRow/StatsGrid"]
 layout_mode = 2
 text = "Mines:"
 horizontal_alignment = 2
 
-[node name="MineCounter" type="Label" parent="VBoxContainer/HBoxContainer/StatsGrid"]
+[node name="MineCounter" type="Label" parent="VBoxContainer/HeaderContainer/TopRow/StatsGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="PauseButton" type="Button" parent="VBoxContainer/HBoxContainer"]
+[node name="PointsRow" type="HBoxContainer" parent="VBoxContainer/HeaderContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="PointsTitleLabel" type="Label" parent="VBoxContainer/HeaderContainer/PointsRow"]
+layout_mode = 2
+text = "Points:"
+
+[node name="PointsLabel" type="Label" parent="VBoxContainer/HeaderContainer/PointsRow"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Pause (ESC)"
+text = "0"
+
+[node name="PointsBreakdownLabel" type="RichTextLabel" parent="VBoxContainer/HeaderContainer/PointsRow"]
+unique_name_in_owner = true
+clip_contents = false
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme = SubResource("Theme_j5wjh")
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
 
 [node name="MinefieldGrid" type="GridContainer" parent="VBoxContainer"]
 unique_name_in_owner = true
@@ -193,6 +194,11 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 
+[node name="UnpauseButton" type="Button" parent="PauseOverlay/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Resume Game (ESC)"
+
 [node name="Overlay" type="Control" parent="."]
 unique_name_in_owner = true
 visible = false
@@ -240,6 +246,7 @@ unique_name_in_owner = true
 visible = false
 layout_mode = 2
 size_flags_horizontal = 4
+alignment = 1
 
 [node name="ScoreBreakdownLabel" type="Label" parent="Overlay/VBoxContainer/ScoreBreakdownContainer"]
 layout_mode = 2
@@ -256,6 +263,7 @@ layout_mode = 2
 
 [node name="FinalScoreLabel" type="Label" parent="Overlay/VBoxContainer/ScoreBreakdownContainer"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "Final Score: 0"
@@ -289,3 +297,21 @@ stream = ExtResource("7_hve3p")
 
 [node name="WinnerTune" type="AudioStreamPlayer" parent="Sounds"]
 stream = ExtResource("5_7jktm")
+
+[node name="PauseButton" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -130.0
+offset_top = -60.0
+offset_right = -33.0
+offset_bottom = -29.0
+grow_horizontal = 0
+grow_vertical = 0
+size_flags_horizontal = 8
+size_flags_vertical = 8
+text = "Pause (ESC)"

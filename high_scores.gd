@@ -3,7 +3,7 @@ extends Node
 var scores: Array = []
 var cfg_path = "user://high_scores.cfg"
 var section_key = "scores"
-
+var top_score_count: int = 10
 
 func load_scores():
 	var config = ConfigFile.new()
@@ -19,16 +19,24 @@ func load_scores():
 		scores = []
 
 func save_score(points: int) -> bool:
-	if scores.size() > 0 and points <= scores[-1]:
-		print("No High score!")
-		return false
 	scores.append(points)
 	scores.sort()
 	scores.reverse()
-	scores = scores.slice(0, 10)
+	scores = scores.slice(0, top_score_count)
 
 	var config = ConfigFile.new()
 	for i in range(scores.size()):
 		config.set_value(section_key, str(i), scores[i])
 	config.save(cfg_path)
-	return true
+
+	if scores.size() == 0:
+		return true
+	if scores.size() < top_score_count:
+		return true
+	return points > scores[-1]
+
+
+func is_high_score(score: int) -> bool:
+	if scores.size() < top_score_count:
+		return true
+	return score >= scores[-1] if scores.size() > 0 else true

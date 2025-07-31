@@ -75,6 +75,7 @@ func _ready():
 	HighScores.load_scores()
 	overlay_restart_button.pressed.connect(new_game)
 	pause_button.pressed.connect(toggle_pause)
+	%UnpauseButton.pressed.connect(toggle_pause)
 	
 	# Setup misclick cooldown timer
 	misclick_timer = Timer.new()
@@ -106,7 +107,7 @@ func _input(event):
 
 func _notification(what):
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
-		if not is_paused:
+		if not is_paused and not overlay.visible:
 			was_paused_before_focus = false
 			set_paused(true)
 		else:
@@ -122,6 +123,8 @@ func _on_window_focus_exited():
 	pass
 
 func toggle_pause():
+	if game_over or overlay.visible:
+		return
 	set_paused(!is_paused)
 
 func set_paused(paused: bool):
@@ -142,7 +145,7 @@ func display_high_scores():
 	# Add high scores
 	for i in range(min(10, HighScores.scores.size())):
 		var score_label = Label.new()
-		score_label.text = "%d. %d points" % [i + 1, HighScores.scores[i]]
+		score_label.text = "%2d. %5d" % [i + 1, HighScores.scores[i]]
 		score_label.add_theme_font_size_override("font_size", 16)
 		high_scores_list.add_child(score_label)
 	
@@ -179,6 +182,7 @@ func new_game():
 		for cell in row:
 			cell.queue_free()
 	grid.clear()
+	final_score_label.visible = false
 
 	# Reset game state
 	first_click = true
@@ -265,8 +269,7 @@ func _on_cell_clicked(cell: Cell):
 		var tween = create_tween()
 		$Sounds/FxEarthquake.play()
 		tween.tween_property(overlay_panel_bg, "modulate:a", .7, .25)
-		tween.finished.connect(show_score_breakdown.bind(false))
-		end_game()
+		tween.finished.connect(show_score_breakdown.bind(true))
 	else:
 		reveal_cell(cell.x, cell.y)
 		check_win()
@@ -325,15 +328,16 @@ func check_win():
 				if cell.is_mine and not cell.is_flagged:
 					cell.is_flagged = true
 					cell.update_display()
+		
 		current_stage.points = get_points()
 		overlay_label.text = "Stage Cleared!"
 		overlay_restart_button.text = "Continue"
-		current_stage_index += 1
-		var is_final_stage = current_stage_index == stages.size()
+
+		# Don't increment stage index yet - wait until after score breakdown
+		var is_final_stage = (current_stage_index + 1) == stages.size()
 		if is_final_stage:
 			overlay_label.text = "You Win! Game over!"
 			overlay_restart_button.text = "Play Again"
-			end_game()
 
 		overlay_panel_bg.modulate = end_overlay_win
 		overlay_panel_bg.modulate.a = 0
@@ -343,61 +347,127 @@ func check_win():
 		tween.finished.connect($Sounds/WinnerTune.play)
 		tween.finished.connect(show_score_breakdown.bind(is_final_stage))
 
+
 func show_score_breakdown(show_final: bool):
 	score_breakdown_container.visible = true
-	
+
 	# Clear previous breakdown
 	for child in stage_scores_container.get_children():
 		child.queue_free()
-	
-	# Animate stage scores
-	var total_animated = 0
-	var delay = 0.0
-	
-	for i in range(stages.size()):
-		if stages[i].points > 0 or i == current_stage_index - 1:
+
+	var total_previous = 0
+
+	# Show all previously completed stages
+	for i in range(current_stage_index):
+		if stages[i].points > 0:
 			var stage_score_label = Label.new()
-			stage_score_label.text = "Stage %d: " % (i + 1)
+			stage_score_label.text = "Stage %d: %d points" % [i + 1, stages[i].points]
 			stage_score_label.add_theme_font_size_override("font_size", 18)
 			stage_scores_container.add_child(stage_score_label)
-			
-			# Animate points counting up
-			var target_points = stages[i].points
-			if i == current_stage_index - 1:
-				target_points = get_points()
-			
-			animate_score_count(stage_score_label, 0, target_points, delay, i + 1)
-			total_animated += target_points
-			delay += 0.5
-	
-	# Show final score
+			total_previous += stages[i].points
+
+	# Show current stage score with animation
+	var stage_score_label = RichTextLabel.new()
+	stage_score_label.bbcode_enabled = true
+	stage_score_label.fit_content = true
+	stage_score_label.scroll_active = false
+	stage_score_label.add_theme_font_size_override("normal_font_size", 18)
+	stage_scores_container.add_child(stage_score_label)
+
+	var base_points = cells_revealed * points_per_tile
+	var bonus_points = points_bonus
+	var total_stage_points = base_points + bonus_points
+
+	animate_stage_score_with_bonus(stage_score_label, base_points, bonus_points, current_stage_index + 1, 0.0)
+	total_previous += total_stage_points
+
+	# Add separator
+	await get_tree().create_timer(1.2).timeout
+	var separator = HSeparator.new()
+	stage_scores_container.add_child(separator)
+
+	# Add current total line
+	var current_total_label = Label.new()
+	current_total_label.text = "Current Total: %d points" % total_previous
+	current_total_label.add_theme_font_size_override("font_size", 20)
+	current_total_label.add_theme_color_override("font_color", Color.YELLOW)
+	stage_scores_container.add_child(current_total_label)
+
 	if show_final:
+		await get_tree().create_timer(0.4).timeout
 		final_score_label.visible = true
-		animate_score_count(final_score_label, 0, total_animated, delay + 0.5, 0, "Final Score: ")
-		
-		# Check if it's a high score
-		if HighScores.scores.size() == 0 or total_animated > HighScores.scores[0]:
+		await animate_score_count(final_score_label, 0, total_previous, 0.1, 0, "Final Score: ")
+		HighScores.save_score(total_previous)
+		await get_tree().create_timer(0.3).timeout
+		if HighScores.is_high_score(total_previous):
 			var high_score_label = Label.new()
-			high_score_label.text = "NEW HIGH SCORE!"
+			high_score_label.text = "🏆 NEW HIGH SCORE! 🏆"
 			high_score_label.add_theme_font_size_override("font_size", 24)
 			high_score_label.modulate = Color.YELLOW
 			stage_scores_container.add_child(high_score_label)
+
+			# Animate the high score label
+			high_score_label.modulate.a = 0
+			var tween = create_tween()
+			tween.tween_property(high_score_label, "modulate:a", 1.0, 0.5)
+			tween.parallel().tween_property(high_score_label, "scale", Vector2(1.2, 1.2), 0.5)
+			tween.tween_property(high_score_label, "scale", Vector2(1.0, 1.0), 0.3)
+
+			$Sounds/WinnerTune.play()
+		print("waiting...")
+		await get_tree().create_timer(3).timeout
+		# NOW increment the stage index before starting new game
+		current_stage_index += 1
+		end_game()
+		print("game end called")
 	else:
+		# Increment stage for next game
+		current_stage_index += 1
 		final_score_label.visible = false
+
+
+func animate_stage_score_with_bonus(label: RichTextLabel, base: int, bonus: int, stage_num: int, delay: float):
+	await get_tree().create_timer(delay).timeout
+
+	var duration = 1.0
+	var elapsed = 0.0
+	var total = base + bonus
+
+	while elapsed < duration:
+		elapsed += get_process_delta_time()
+		var progress = min(elapsed / duration, 1.0)
+		var current_value = int(lerp(0.0, float(total), progress))
+
+		# Calculate how much is base vs bonus at this point
+		var current_base = min(current_value, base)
+		var current_bonus = max(0, current_value - base)
+
+		if current_bonus > 0:
+			label.text = "Stage %d: %d ([color=#FFCC00]+%d[/color]) = %d points" % [stage_num, current_base, current_bonus, current_value]
+		else:
+			label.text = "Stage %d: %d points" % [stage_num, current_value]
+
+		await get_tree().process_frame
+
+	# Ensure final value is set correctly with total
+	if bonus > 0:
+		label.text = "Stage %d: %d ([color=#FFCC00]+%d[/color]) = %d points" % [stage_num, base, bonus, total]
+	else:
+		label.text = "Stage %d: %d points" % [stage_num, total]
 
 func animate_score_count(label: Label, from: int, to: int, delay: float, stage_num: int, prefix: String = ""):
 	await get_tree().create_timer(delay).timeout
 	
 	var duration = 1.0
 	var elapsed = 0.0
-	
+	print("animate score: %s -> %s" % [from, to])
 	while elapsed < duration:
 		elapsed += get_process_delta_time()
 		var progress = min(elapsed / duration, 1.0)
 		var current_value = int(lerp(float(from), float(to), progress))
 		
 		if stage_num > 0:
-			label.text = "Stage %d: %d points" % [stage_num, current_value]
+			label.text = "Stage %d: %d" % [stage_num, current_value]
 		else:
 			label.text = prefix + str(current_value) + " points"
 		
@@ -532,9 +602,14 @@ func update_points():
 		points_breakdown.text = ""
 
 func end_game():
-	if HighScores.save_score(get_all_points()):
-		print("You've gotten a top score!")
+	var total_score = get_all_points()
+
+	# Reset for new game only after handling score!
+	var is_high_score = HighScores.save_score(total_score)
+	if is_high_score:
+		print("New high score achieved: ", total_score)
+
+	display_high_scores()
 	for stage in stages:
 		stage.reset()
-		current_stage_index = 0
-	display_high_scores()
+	current_stage_index = 0
