@@ -21,11 +21,16 @@ class Stage:
 	var columns
 	var rows
 	var mines
+	var points: int
 
 	func _init(columns, rows, mines):
 		self.columns = columns
 		self.rows = rows
 		self.mines = mines
+		self.reset()
+	
+	func reset():
+		self.points = 0
 
 var stages = [
 	Stage.new(9, 9, 10),
@@ -34,7 +39,7 @@ var stages = [
 	Stage.new(18, 14, 47),
 	Stage.new(20, 16, 66)
 ]
-var current_stage: int = 0
+var current_stage_index: int = 0
 
 var cell_scene = preload("res://Cell.tscn")
 var grid: Array = []
@@ -46,8 +51,8 @@ var misclick_counter: int = 0
 var misclick_locked: bool = false
 var misclick_timer: Timer = null
 var countdown_timer: Timer = null
-var points: int = 0
 var points_bonus: int = 0
+var current_stage: Stage = null
 
 @onready var grid_container: GridContainer = %MinefieldGrid
 @onready var mine_counter: Label = %MineCounter
@@ -77,18 +82,18 @@ func _ready():
 	add_child(countdown_timer)
 	new_game()
 
-func new_game():
-	var stage = stages[current_stage]
-	grid_width = stage.columns
-	grid_height = stage.rows
-	mine_count = stage.mines
+func new_game():   
+	current_stage = stages[current_stage_index]
+	grid_width = current_stage.columns
+	grid_height = current_stage.rows
+	mine_count = current_stage.mines
 	var max_mines = (grid_width * grid_height) - 1
 	print("Maxmines: %s count: %s" % [max_mines, mine_count])
 	mine_count = min(mine_count, max_mines)
 	misclick_counter = 0
-	points = 0
+	cells_revealed = 0
 	points_bonus = 0
-	points_label.text = "0"
+	points_label.text = str(get_all_points())
 	points_breakdown.text = ""
 	misclick_locked = false
 	misclick_timer.stop()
@@ -184,7 +189,9 @@ func _on_cell_clicked(cell: Cell):
 		var tween = create_tween()
 		$Sounds/FxEarthquake.play()
 		tween.tween_property(overlay_panel_bg, "modulate:a", .7, .25)
-
+		for stage in stages:
+			stage.reset()
+			current_stage_index = 0
 	else:
 		reveal_cell(cell.x, cell.y)
 		check_win()
@@ -243,11 +250,11 @@ func check_win():
 				if cell.is_mine and not cell.is_flagged:
 					cell.is_flagged = true
 					cell.update_display()
-		
+		current_stage.points = get_points()
 		overlay_label.text = "You Win! All safe cells revealed!"
 		overlay_restart_button.text = "Play Again"
-		if current_stage < stages.size() - 1:
-			current_stage += 1
+		if current_stage_index < stages.size() - 1:
+			current_stage_index += 1
 			overlay_label.text = "Stage Cleared!"
 			overlay_restart_button.text = "Continue"
 			
@@ -355,16 +362,27 @@ func _on_misclick_timer_tick():
 		misclick_locked = false
 		misclick_timer.stop()
 
+func get_points():
+	return cells_revealed * points_per_tile + points_bonus
+
+func get_all_points():
+	var total_points = 0
+	for stage in stages:
+		if stage == current_stage:
+			continue
+		total_points += stage.points
+	return total_points + get_points()
+
 func _on_countdowntick():
-	if game_over:
-		return
-	points_bonus = max(0, points_bonus - 1)
-	points_label.text = str(cells_revealed * points_per_tile + points_bonus)
+	if not game_over:
+		points_bonus = max(0, points_bonus - 1)
+	update_points()
+	
+func update_points():
+	points_label.text = str(get_all_points())
 	if points_bonus > 0:
 		points_label.modulate = points_color_bonus
-		points_breakdown.text = "(%d + %d)" % [cells_revealed * points_per_tile, points_bonus]
-		points_breakdown.text = "(%d + [color=#FC0]%d[/color])" % [cells_revealed * points_per_tile, points_bonus]
+		points_breakdown.text = "(%d + [color=#FC0]%d[/color])" % [get_points()-points_bonus, points_bonus]
 	else:
 		points_label.modulate = points_color_normal
 		points_breakdown.text = ""
-	pass
