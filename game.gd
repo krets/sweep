@@ -115,6 +115,7 @@ func new_game():
 			cell.chorded_left.connect(_on_cell_chorded_left)
 			cell.chorded_right.connect(_on_cell_chorded_right)
 			grid_container.add_child(cell)
+			cell.center_particles(cell_size)
 			row.append(cell)
 		grid.append(row)
 	

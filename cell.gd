@@ -27,6 +27,8 @@ var y: int
 
 @onready var button: Button = $Button
 @onready var label: Label = $Label
+@onready var particles = $RevealParticles
+
 @onready var adjacent_colors: Array[Color] = [
 	adjacent_color_one,
 	adjacent_color_two,
@@ -41,6 +43,9 @@ var y: int
 func _ready():
 	button.gui_input.connect(_on_button_input)
 	update_display()
+
+func center_particles(cell_size):
+	particles.position = Vector2(cell_size/2, cell_size/2)
 
 func _on_button_input(event):
 	if event is InputEventMouseButton:
@@ -77,13 +82,24 @@ func update_display():
 			label.modulate = adjacent_colors[adjacent_mines - 1]
 		else:
 			label.text = ""
-			#modulate = Color(1, 0, 0, 1)
+
+		# Fade in label
+		label.modulate = Color(label.modulate.r, label.modulate.g, label.modulate.b, 0)
+		var t = create_tween()
+		t.tween_property(label, "modulate:a", 1.0, 0.18)
+
+		# Trigger particles if you added them
+		if has_node("RevealParticles"):
+			$RevealParticles.emitting = false
+			$RevealParticles.emitting = true
+
 	else:
 		button.disabled = false
 		if is_flagged:
 			label.text = "🚩"
 		else:
 			label.text = ""
+
 
 func blink_red():
 	var original = modulate

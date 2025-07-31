@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://chtby7tbr8bqo"]
+[gd_scene load_steps=7 format=3 uid="uid://chtby7tbr8bqo"]
 
 [ext_resource type="Script" uid="uid://bu6bbk1wcrt8x" path="res://cell.gd" id="1_yh0nt"]
 
@@ -24,6 +24,9 @@ corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
 [sub_resource type="Theme" id="Theme_yh0nt"]
+
+[sub_resource type="Gradient" id="Gradient_yh0nt"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
 
 [node name="Cell" type="Control"]
 layout_mode = 3
@@ -72,3 +75,22 @@ grow_vertical = 2
 theme = SubResource("Theme_yh0nt")
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="RevealParticles" type="CPUParticles2D" parent="."]
+position = Vector2(4, 0)
+emitting = false
+amount = 4
+lifetime = 0.67
+one_shot = true
+explosiveness = 1.0
+randomness = 0.5
+lifetime_randomness = 0.67
+direction = Vector2(0, -1)
+spread = 180.0
+initial_velocity_min = 100.0
+initial_velocity_max = 300.0
+scale_amount_min = 3.0
+scale_amount_max = 12.0
+color = Color(0.556953, 0.556953, 0.556953, 1)
+color_ramp = SubResource("Gradient_yh0nt")
+hue_variation_max = 0.45
