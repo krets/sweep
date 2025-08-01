@@ -244,6 +244,7 @@ vertical_alignment = 1
 [node name="ScoreBreakdownContainer" type="VBoxContainer" parent="Overlay/VBoxContainer"]
 unique_name_in_owner = true
 visible = false
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 4
 alignment = 1
@@ -298,20 +299,37 @@ stream = ExtResource("7_hve3p")
 [node name="WinnerTune" type="AudioStreamPlayer" parent="Sounds"]
 stream = ExtResource("5_7jktm")
 
-[node name="PauseButton" type="Button" parent="."]
-unique_name_in_owner = true
+[node name="BottomRightStuff" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -130.0
-offset_top = -60.0
-offset_right = -33.0
-offset_bottom = -29.0
+offset_left = -40.0
+offset_top = -40.0
 grow_horizontal = 0
 grow_vertical = 0
+
+[node name="SpecialClearContainer" type="HBoxContainer" parent="BottomRightStuff"]
+layout_mode = 2
+alignment = 1
+
+[node name="SpecialClearCostLabel" type="Label" parent="BottomRightStuff/SpecialClearContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Cost: 25 pts"
+horizontal_alignment = 1
+
+[node name="SpecialClearButton" type="Button" parent="BottomRightStuff/SpecialClearContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Safely clear a cell for points"
+text = "Special Clear"
+
+[node name="PauseButton" type="Button" parent="BottomRightStuff"]
+unique_name_in_owner = true
+layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 8
 text = "Pause (ESC)"

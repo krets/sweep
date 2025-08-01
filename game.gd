@@ -15,6 +15,11 @@ extends Control
 @export var cell_hover: Color = Color(.8, .2, .6)
 @export var cell_exposed: Color = Color(.8, .2, .6)
 @export var hard_mode: bool = false
+@export var special_clear_base_cost: int = 25
+@export var special_clear_percent_cost: float = 0.15
+@export var special_clear_cursor = preload("res://special_clear_cursor.png") 
+
+
 
 class Stage:
 	var columns
@@ -54,6 +59,9 @@ var points_bonus: int = 0
 var current_stage: Stage = null
 var is_paused: bool = false
 var was_paused_before_focus: bool = false
+var special_clear_mode: bool = false
+var points_spent: int = 0  # Track points spent in current stage
+var default_cursor = null
 
 @onready var grid_container: GridContainer = %MinefieldGrid
 @onready var mine_counter: Label = %MineCounter
@@ -70,12 +78,17 @@ var was_paused_before_focus: bool = false
 @onready var score_breakdown_container: VBoxContainer = %ScoreBreakdownContainer
 @onready var final_score_label: Label = %FinalScoreLabel
 @onready var stage_scores_container: VBoxContainer = %StageScoresContainer
+@onready var special_clear_button: Button = %SpecialClearButton
+@onready var special_clear_cost_label: Label = %SpecialClearCostLabel
 
 func _ready():
 	HighScores.load_scores()
 	overlay_restart_button.pressed.connect(new_game)
 	pause_button.pressed.connect(toggle_pause)
 	%UnpauseButton.pressed.connect(toggle_pause)
+
+	special_clear_button.pressed.connect(_toggle_special_clear)
+	default_cursor = Input.get_current_cursor_shape()
 	
 	# Setup misclick cooldown timer
 	misclick_timer = Timer.new()
@@ -100,6 +113,45 @@ func _ready():
 	get_window().focus_exited.connect(_on_window_focus_exited)
 	
 	new_game()
+
+func _toggle_special_clear():
+	special_clear_mode = !special_clear_mode
+	_update_special_clear_ui()
+	
+	if special_clear_mode:
+		#Input.set_default_cursor_shape(Input.CURSOR_CROSS)  # Or use custom cursor
+		Input.set_custom_mouse_cursor(special_clear_cursor)
+	else:
+		#Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+		Input.set_custom_mouse_cursor(null)
+
+func _update_special_clear_ui():
+	var cost = _calculate_special_clear_cost()
+	var can_afford = get_all_points() >= cost
+
+	special_clear_button.disabled = !can_afford or game_over or is_paused
+	special_clear_button.modulate = Color.GREEN if special_clear_mode else Color.WHITE
+
+	if can_afford:
+		special_clear_cost_label.text = "Cost: %d pts" % cost
+		special_clear_cost_label.modulate = Color.WHITE
+	else:
+		special_clear_cost_label.text = "Need %d pts" % cost
+		special_clear_cost_label.modulate = Color.RED
+
+func _calculate_special_clear_cost() -> int:
+	var total_points = get_all_points()
+	var percent_cost = int(total_points * special_clear_percent_cost)
+	return max(special_clear_base_cost, percent_cost)
+
+func _consume_special_clear_cost(cost: int):
+	if points_bonus >= cost:
+		points_bonus -= cost
+	else:
+		var remaining = cost - points_bonus
+		points_bonus = 0
+		points_spent += remaining
+	update_points()
 
 func _input(event):
 	if event.is_action_pressed("pause"):
@@ -166,6 +218,8 @@ func new_game():
 	misclick_counter = 0
 	cells_revealed = 0
 	points_bonus = 0
+	points_spent = 0
+	special_clear_mode = false
 	points_label.text = str(get_all_points())
 	points_breakdown.text = ""
 	misclick_locked = false
@@ -255,6 +309,15 @@ func _on_cell_clicked(cell: Cell):
 	if game_over or cell.is_flagged or is_paused:
 		return
 
+	if special_clear_mode and not cell.is_revealed:
+		var cost = _calculate_special_clear_cost()
+		if get_all_points() >= cost:
+			_perform_special_clear(cell)
+			special_clear_mode = false
+			Input.set_custom_mouse_cursor(null)
+			_update_special_clear_ui()
+		return
+
 	if first_click:
 		first_click = false
 		place_mines(cell.x, cell.y)
@@ -273,6 +336,58 @@ func _on_cell_clicked(cell: Cell):
 	else:
 		reveal_cell(cell.x, cell.y)
 		check_win()
+
+func _perform_special_clear(cell: Cell):
+	var cost = _calculate_special_clear_cost()
+	_consume_special_clear_cost(cost)
+	
+	if first_click:
+		first_click = false
+		place_mines(cell.x, cell.y)
+	
+	if cell.is_mine:
+		# Play bomb defuse sound
+		$Sounds/FxEarthquake.play()
+
+		# Remove the mine
+		cell.is_mine = false
+		
+		# Recalculate the mine count for the cleared cell itself
+		cell.adjacent_mines = count_adjacent_mines(cell.x, cell.y)
+
+		# Update all adjacent cells' mine counts and track cells that become 0
+		var cells_to_cascade = []
+		for dy in range(-1, 2):
+			for dx in range(-1, 2):
+				if dx == 0 and dy == 0:
+					continue
+				var nx = cell.x + dx
+				var ny = cell.y + dy
+				if nx >= 0 and nx < grid_width and ny >= 0 and ny < grid_height:
+					var adj_cell = grid[ny][nx]
+					if not adj_cell.is_mine and adj_cell.adjacent_mines > 0:
+						adj_cell.adjacent_mines -= 1
+						if adj_cell.is_revealed:
+							adj_cell.update_display()
+							# If this revealed cell now has 0 mines, it should cascade
+							if adj_cell.adjacent_mines == 0:
+								cells_to_cascade.append(adj_cell)
+		
+		# Trigger cascade reveal for any cells that dropped to 0
+		for cascade_cell in cells_to_cascade:
+			for dy in range(-1, 2):
+				for dx in range(-1, 2):
+					if dx == 0 and dy == 0:
+						continue
+					reveal_cell(cascade_cell.x + dx, cascade_cell.y + dy)
+		
+		# Reduce total mine count
+		mine_count -= 1
+		update_mine_counter()
+	
+	# Reveal the cell normally
+	reveal_cell(cell.x, cell.y)
+	check_win()
 
 func reveal_cell(x: int, y: int):
 	if x < 0 or x >= grid_width or y < 0 or y >= grid_height:
@@ -378,7 +493,7 @@ func show_score_breakdown(show_final: bool):
 	var bonus_points = points_bonus
 	var total_stage_points = base_points + bonus_points
 
-	animate_stage_score_with_bonus(stage_score_label, base_points, bonus_points, current_stage_index + 1, 0.0)
+	animate_stage_score_with_bonus(stage_score_label, base_points, bonus_points, points_spent, current_stage_index + 1, 0.0)
 	total_previous += total_stage_points
 
 	# Add separator
@@ -426,34 +541,47 @@ func show_score_breakdown(show_final: bool):
 		final_score_label.visible = false
 
 
-func animate_stage_score_with_bonus(label: RichTextLabel, base: int, bonus: int, stage_num: int, delay: float):
+# In the stage score animation, show points spent if any
+func animate_stage_score_with_bonus(label: RichTextLabel, base: int, bonus: int, spent: int, stage_num: int, delay: float):
 	await get_tree().create_timer(delay).timeout
-
+	
 	var duration = 1.0
 	var elapsed = 0.0
-	var total = base + bonus
-
+	var total = base + bonus - spent
+	
 	while elapsed < duration:
 		elapsed += get_process_delta_time()
 		var progress = min(elapsed / duration, 1.0)
 		var current_value = int(lerp(0.0, float(total), progress))
-
-		# Calculate how much is base vs bonus at this point
-		var current_base = min(current_value, base)
-		var current_bonus = max(0, current_value - base)
-
-		if current_bonus > 0:
-			label.text = "Stage %d: %d ([color=#FFCC00]+%d[/color]) = %d points" % [stage_num, current_base, current_bonus, current_value]
+		
+		var text_parts = ["Stage %d: %d" % [stage_num, base]]
+		
+		if bonus > 0:
+			text_parts.append("[color=#FFCC00]+%d[/color]" % bonus)
+		
+		if spent > 0:
+			text_parts.append("[color=#FF0000]-%d[/color]" % spent)
+		
+		if bonus > 0 or spent > 0:
+			text_parts.append("= %d points" % current_value)
 		else:
-			label.text = "Stage %d: %d points" % [stage_num, current_value]
-
+			text_parts[0] = "Stage %d: %d points" % [stage_num, current_value]
+		
+		label.text = " ".join(text_parts)
 		await get_tree().process_frame
-
-	# Ensure final value is set correctly with total
+	
+	# Set final text
+	var final_parts = ["Stage %d: %d" % [stage_num, base]]
 	if bonus > 0:
-		label.text = "Stage %d: %d ([color=#FFCC00]+%d[/color]) = %d points" % [stage_num, base, bonus, total]
+		final_parts.append("[color=#FFCC00]+%d[/color]" % bonus)
+	if spent > 0:
+		final_parts.append("[color=#FF0000]-%d[/color]" % spent)
+	if bonus > 0 or spent > 0:
+		final_parts.append("= %d points" % total)
 	else:
-		label.text = "Stage %d: %d points" % [stage_num, total]
+		final_parts[0] = "Stage %d: %d points" % [stage_num, total]
+	
+	label.text = " ".join(final_parts)
 
 func animate_score_count(label: Label, from: int, to: int, delay: float, stage_num: int, prefix: String = ""):
 	await get_tree().create_timer(delay).timeout
@@ -577,7 +705,7 @@ func _on_misclick_timer_tick():
 		misclick_timer.stop()
 
 func get_points():
-	return cells_revealed * points_per_tile + points_bonus
+	return max(0, cells_revealed * points_per_tile + points_bonus - points_spent)
 
 func get_all_points():
 	var total_points = 0
@@ -591,15 +719,25 @@ func _on_countdowntick():
 	if not game_over and not is_paused:
 		points_bonus = max(0, points_bonus - 1)
 	update_points()
+	_update_special_clear_ui()
 
 func update_points():
 	points_label.text = str(get_all_points())
+	var breakdown_parts = []
+
+	if points_spent > 0:
+		breakdown_parts.append("[color=#FF0000]-%d[/color]" % points_spent)
+
 	if points_bonus > 0:
-		points_label.modulate = points_color_bonus
-		points_breakdown.text = "(%d + [color=#FC0]%d[/color])" % [get_points()-points_bonus, points_bonus]
+		breakdown_parts.append("[color=#FFCC00]+%d[/color]" % points_bonus)
+
+	if breakdown_parts.size() > 0:
+		var base = cells_revealed * points_per_tile
+		points_breakdown.text = "(%d %s)" % [base, " ".join(breakdown_parts)]
+		points_label.modulate = points_color_bonus if points_bonus > 0 else points_color_normal
 	else:
-		points_label.modulate = points_color_normal
 		points_breakdown.text = ""
+		points_label.modulate = points_color_normal
 
 func end_game():
 	var total_score = get_all_points()
